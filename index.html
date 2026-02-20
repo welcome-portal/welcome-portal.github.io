@@ -13,15 +13,21 @@ body {
     align-items:center;
     height:100vh;
     margin:0;
-    overflow:hidden;
+    opacity:0;
+    animation: fadeIn 1.2s ease forwards;
 }
+
+@keyframes fadeIn {
+    to { opacity:1; }
+}
+
 .terminal {
     width:600px;
     border:2px solid #00ff00;
     padding:20px;
     box-shadow:0 0 25px #00ff00;
-    position:relative;
 }
+
 input {
     background:black;
     color:#00ff00;
@@ -31,6 +37,7 @@ input {
     margin-bottom:10px;
     font-family: monospace;
 }
+
 button {
     background:black;
     color:#00ff00;
@@ -39,17 +46,15 @@ button {
     width:100%;
     cursor:pointer;
 }
+
+button:disabled {
+    opacity:0.5;
+    cursor:not-allowed;
+}
+
 .hidden { display:none; }
-.error { color:red; }
 .output { white-space:pre-wrap; margin-top:15px; }
-.glitch {
-    animation: glitch 0.15s infinite;
-}
-@keyframes glitch {
-    0% { text-shadow: 2px 0 red; }
-    50% { text-shadow: -2px 0 blue; }
-    100% { text-shadow: 2px 0 red; }
-}
+.warning { color:red; }
 </style>
 </head>
 <body>
@@ -59,17 +64,17 @@ button {
 
 <div id="login" class="hidden">
     <div>> ENTER CREDENTIALS</div><br>
-    <div id="error" class="error"></div>
+    <div id="status"></div>
     <input type="text" id="username" placeholder="USERNAME">
     <input type="password" id="password" placeholder="PASSWORD">
-    <button onclick="checkLogin()">AUTHENTICATE</button>
+    <button id="authBtn">AUTHENTICATE</button>
 </div>
 
 <div id="output" class="output hidden"></div>
 </div>
 
 <script>
-// ====== CONFIGURE HERE ======
+// ===== CONFIG =====
 const correctUser = "neo";
 const correctPass = "matrix";
 
@@ -79,25 +84,27 @@ const messages = [
 "> MESSAGE: The vault code is 7391.",
 "> TRANSMISSION COMPLETE."
 ];
-// ============================
+// ==================
 
 const bootLines = [
 "BOOTING SECURE TERMINAL...",
 "INITIALIZING ENCRYPTION LAYERS...",
 "ESTABLISHING SECURE LINK...",
-"TRACE ROUTE INITIATED...",
-"IP: 192.168.4." + Math.floor(Math.random()*255),
-"IP: 10.0.0." + Math.floor(Math.random()*255),
-"IP: 172.16." + Math.floor(Math.random()*255) + "." + Math.floor(Math.random()*255),
 "ACCESS NODE VERIFIED."
 ];
+
+let messageIndex = 0;
+let failedAttempts = 0;
+let lockedUntil = 0;
 
 const bootDiv = document.getElementById("boot");
 const loginDiv = document.getElementById("login");
 const outputDiv = document.getElementById("output");
-let messageIndex = 0;
+const statusDiv = document.getElementById("status");
+const authBtn = document.getElementById("authBtn");
+const userInput = document.getElementById("username");
+const passInput = document.getElementById("password");
 
-// Typing effect
 function typeLine(text, container, speed=20, callback=null) {
     let i = 0;
     const line = document.createElement("div");
@@ -115,37 +122,62 @@ function typeLine(text, container, speed=20, callback=null) {
     typing();
 }
 
-// Boot sequence
 function runBoot(index=0) {
     if (index >= bootLines.length) {
-        setTimeout(() => {
-            loginDiv.classList.remove("hidden");
-        }, 500);
+        setTimeout(() => loginDiv.classList.remove("hidden"), 400);
         return;
     }
-    typeLine(bootLines[index], bootDiv, 15, () => {
-        runBoot(index+1);
-    });
+    typeLine(bootLines[index], bootDiv, 15, () => runBoot(index+1));
 }
 
-// Login check
+function setInputsDisabled(state) {
+    authBtn.disabled = state;
+    userInput.disabled = state;
+    passInput.disabled = state;
+}
+
 function checkLogin() {
-    const user = document.getElementById("username").value;
-    const pass = document.getElementById("password").value;
-    const errorDiv = document.getElementById("error");
-
-    if (user === correctUser && pass === correctPass) {
-        loginDiv.classList.add("hidden");
-        outputDiv.classList.remove("hidden");
-        outputDiv.classList.add("glitch");
-        setTimeout(()=> outputDiv.classList.remove("glitch"), 800);
-        showNextMessage();
-    } else {
-        errorDiv.textContent = "> ACCESS DENIED";
+    const now = Date.now();
+    if (now < lockedUntil) {
+        statusDiv.innerHTML = "<span class='warning'>> SYSTEM LOCKED</span>";
+        return;
     }
+
+    const user = userInput.value;
+    const pass = passInput.value;
+
+    setInputsDisabled(true);
+    statusDiv.textContent = "> AUTHENTICATING...";
+
+    const fakeDelay = 500 + Math.random() * 700;
+
+    setTimeout(() => {
+        if (user === correctUser && pass === correctPass) {
+            statusDiv.textContent = "> HASH VERIFIED";
+            setTimeout(() => {
+                statusDiv.textContent = "> KEY ACCEPTED";
+                setTimeout(() => {
+                    loginDiv.classList.add("hidden");
+                    outputDiv.classList.remove("hidden");
+                    showNextMessage();
+                }, 400);
+            }, 400);
+        } else {
+            failedAttempts++;
+            statusDiv.innerHTML = "<span class='warning'>> ACCESS DENIED</span>";
+
+            if (failedAttempts === 3) {
+                lockedUntil = Date.now() + 3000;
+                typeLine("> WARNING: MONITORING ENABLED", loginDiv, 20, () => {
+                    typeLine("> SESSION FLAGGED", loginDiv, 20);
+                });
+            }
+
+            setTimeout(() => setInputsDisabled(false), 500);
+        }
+    }, fakeDelay);
 }
 
-// Message progression
 function showNextMessage() {
     if (messageIndex >= messages.length) return;
 
@@ -158,17 +190,27 @@ function showNextMessage() {
             cont.textContent = "> PRESS ENTER TO CONTINUE";
             outputDiv.appendChild(cont);
 
-            function waitEnter(e) {
+            const waitEnter = (e) => {
                 if (e.key === "Enter") {
                     document.removeEventListener("keydown", waitEnter);
                     cont.remove();
                     showNextMessage();
                 }
-            }
+            };
+
             document.addEventListener("keydown", waitEnter);
         }
     });
 }
+
+authBtn.addEventListener("click", checkLogin);
+
+passInput.addEventListener("keydown", e => {
+    if (e.key === "Enter") checkLogin();
+});
+
+userInput.addEventListener("input", () => statusDiv.textContent = "");
+passInput.addEventListener("input", () => statusDiv.textContent = "");
 
 runBoot();
 </script>
