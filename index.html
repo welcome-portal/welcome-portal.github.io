@@ -76,4 +76,17 @@ function checkLogin() {
     const user = document.getElementById("username").value;
     const pass = document.getElementById("password").value;
     const errorDiv = document.getElementById("error");
-    const s
+    const secretDiv = document.getElementById("secret");
+
+    if (user === correctUser && pass === correctPass) {
+        errorDiv.textContent = "";
+        secretDiv.classList.remove("hidden");
+    } else {
+        secretDiv.classList.add("hidden");
+        errorDiv.textContent = "> ACCESS DENIED";
+    }
+}
+</script>
+
+</body>
+</html>
