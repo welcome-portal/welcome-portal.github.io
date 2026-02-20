@@ -2,90 +2,175 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>ACCESS TERMINAL</title>
+<title>SECURE TERMINAL</title>
 <style>
-    body {
-        background-color: black;
-        color: #00ff00;
-        font-family: monospace;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100vh;
-        margin: 0;
-    }
-    .terminal {
-        border: 2px solid #00ff00;
-        padding: 30px;
-        width: 400px;
-        box-shadow: 0 0 20px #00ff00;
-    }
-    input {
-        background: black;
-        color: #00ff00;
-        border: 1px solid #00ff00;
-        padding: 5px;
-        width: 100%;
-        margin-bottom: 10px;
-        font-family: monospace;
-    }
-    button {
-        background: black;
-        color: #00ff00;
-        border: 1px solid #00ff00;
-        padding: 5px;
-        width: 100%;
-        cursor: pointer;
-    }
-    .hidden {
-        display: none;
-        margin-top: 20px;
-        border-top: 1px solid #00ff00;
-        padding-top: 10px;
-    }
-    .error {
-        color: red;
-        margin-bottom: 10px;
-    }
+body {
+    background:black;
+    color:#00ff00;
+    font-family: monospace;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+    overflow:hidden;
+}
+.terminal {
+    width:600px;
+    border:2px solid #00ff00;
+    padding:20px;
+    box-shadow:0 0 25px #00ff00;
+    position:relative;
+}
+input {
+    background:black;
+    color:#00ff00;
+    border:1px solid #00ff00;
+    padding:5px;
+    width:100%;
+    margin-bottom:10px;
+    font-family: monospace;
+}
+button {
+    background:black;
+    color:#00ff00;
+    border:1px solid #00ff00;
+    padding:5px;
+    width:100%;
+    cursor:pointer;
+}
+.hidden { display:none; }
+.error { color:red; }
+.output { white-space:pre-wrap; margin-top:15px; }
+.glitch {
+    animation: glitch 0.15s infinite;
+}
+@keyframes glitch {
+    0% { text-shadow: 2px 0 red; }
+    50% { text-shadow: -2px 0 blue; }
+    100% { text-shadow: 2px 0 red; }
+}
 </style>
 </head>
 <body>
 
 <div class="terminal">
-    <div>> SECURE ACCESS TERMINAL</div>
-    <div>> ENTER CREDENTIALS</div>
-    <br>
+<div id="boot"></div>
 
+<div id="login" class="hidden">
+    <div>> ENTER CREDENTIALS</div><br>
     <div id="error" class="error"></div>
-
     <input type="text" id="username" placeholder="USERNAME">
     <input type="password" id="password" placeholder="PASSWORD">
     <button onclick="checkLogin()">AUTHENTICATE</button>
+</div>
 
-    <div id="secret" class="hidden">
-        <p>> ACCESS GRANTED</p>
-        <p>> MESSAGE: The vault code is 7391.</p>
-    </div>
+<div id="output" class="output hidden"></div>
 </div>
 
 <script>
-function checkLogin() {
-    const correctUser = "neo";
-    const correctPass = "matrix";
+// ====== CONFIGURE HERE ======
+const correctUser = "neo";
+const correctPass = "matrix";
 
+const messages = [
+"> ACCESS GRANTED",
+"> DECRYPTING VAULT DATA...",
+"> MESSAGE: The vault code is 7391.",
+"> TRANSMISSION COMPLETE."
+];
+// ============================
+
+const bootLines = [
+"BOOTING SECURE TERMINAL...",
+"INITIALIZING ENCRYPTION LAYERS...",
+"ESTABLISHING SECURE LINK...",
+"TRACE ROUTE INITIATED...",
+"IP: 192.168.4." + Math.floor(Math.random()*255),
+"IP: 10.0.0." + Math.floor(Math.random()*255),
+"IP: 172.16." + Math.floor(Math.random()*255) + "." + Math.floor(Math.random()*255),
+"ACCESS NODE VERIFIED."
+];
+
+const bootDiv = document.getElementById("boot");
+const loginDiv = document.getElementById("login");
+const outputDiv = document.getElementById("output");
+let messageIndex = 0;
+
+// Typing effect
+function typeLine(text, container, speed=20, callback=null) {
+    let i = 0;
+    const line = document.createElement("div");
+    container.appendChild(line);
+
+    function typing() {
+        if (i < text.length) {
+            line.textContent += text.charAt(i);
+            i++;
+            setTimeout(typing, speed);
+        } else if (callback) {
+            callback();
+        }
+    }
+    typing();
+}
+
+// Boot sequence
+function runBoot(index=0) {
+    if (index >= bootLines.length) {
+        setTimeout(() => {
+            loginDiv.classList.remove("hidden");
+        }, 500);
+        return;
+    }
+    typeLine(bootLines[index], bootDiv, 15, () => {
+        runBoot(index+1);
+    });
+}
+
+// Login check
+function checkLogin() {
     const user = document.getElementById("username").value;
     const pass = document.getElementById("password").value;
     const errorDiv = document.getElementById("error");
-    const secretDiv = document.getElementById("secret");
 
     if (user === correctUser && pass === correctPass) {
-        errorDiv.textContent = "";
-        secretDiv.classList.remove("hidden");
+        loginDiv.classList.add("hidden");
+        outputDiv.classList.remove("hidden");
+        outputDiv.classList.add("glitch");
+        setTimeout(()=> outputDiv.classList.remove("glitch"), 800);
+        showNextMessage();
     } else {
-        secretDiv.classList.add("hidden");
         errorDiv.textContent = "> ACCESS DENIED";
     }
 }
+
+// Message progression
+function showNextMessage() {
+    if (messageIndex >= messages.length) return;
+
+    const speed = messages[messageIndex].includes("vault code") ? 8 : 20;
+
+    typeLine(messages[messageIndex], outputDiv, speed, () => {
+        messageIndex++;
+        if (messageIndex < messages.length) {
+            const cont = document.createElement("div");
+            cont.textContent = "> PRESS ENTER TO CONTINUE";
+            outputDiv.appendChild(cont);
+
+            function waitEnter(e) {
+                if (e.key === "Enter") {
+                    document.removeEventListener("keydown", waitEnter);
+                    cont.remove();
+                    showNextMessage();
+                }
+            }
+            document.addEventListener("keydown", waitEnter);
+        }
+    });
+}
+
+runBoot();
 </script>
 
 </body>
