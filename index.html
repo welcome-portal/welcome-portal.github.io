@@ -75,16 +75,14 @@ button:disabled {
 
 <script>
 // ===== CONFIG =====
-const correctUser = "neo";
-const correctPass = "matrix";
+const correctUser = "ASSASSINX";
+const correctPass = "Frostbite";
 
 const messages = [
 "> ACCESS GRANTED",
-"> DECRYPTING VAULT DATA...",
-"> MESSAGE: The vault code is 7391.",
-"> TRANSMISSION COMPLETE."
+"> DECRYPTING VAULT DATA...\n\n> Discovered new incoming messages for user ASSASSIN_X from user VERY_SHARP_SHADED_AREA.\n\n> Happy Birthday!\n> It was true before that we had known eachother for half our lives, but now the math is a lot more obvious.\n\n> Around 12ish years ago (not 10, Epic The Musical), I met a kid who's imagination was about 100 times cooler than everyone else's combined. You know all of this already, but you pretty much taught me creativity. You're the most unbiased, most stubborn, and most skilled story teller I have ever met. You're incredibly funny to be around and the person I trust the most to give the best advice. I don't think there's been a luckier day in my life than the day I met you. I love you, and I hope you enjoy your meal.",
+"Happy Birthday BFF<3\n\n\n> TRANSMISSION COMPLETE."
 ];
-// ==================
 
 const bootLines = [
 "BOOTING SECURE TERMINAL...",
@@ -139,7 +137,7 @@ function setInputsDisabled(state) {
 function checkLogin() {
     const now = Date.now();
     if (now < lockedUntil) {
-        statusDiv.innerHTML = "<span class='warning'>> SYSTEM LOCKED</span>";
+        statusDiv.innerHTML = "<span class='warning'>> INTERNAL SECURITY ACTIONS TAKEN</span>";
         return;
     }
 
@@ -152,7 +150,7 @@ function checkLogin() {
     const fakeDelay = 500 + Math.random() * 700;
 
     setTimeout(() => {
-        if (user === correctUser && pass === correctPass) {
+        if (user.toLowerCase() === correctUser.toLowerCase() && pass.toLowerCase() === correctPass.toLowerCase()) {
             statusDiv.textContent = "> HASH VERIFIED";
             setTimeout(() => {
                 statusDiv.textContent = "> KEY ACCEPTED";
